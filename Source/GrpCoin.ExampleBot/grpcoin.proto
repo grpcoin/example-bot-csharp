@@ -1,0 +1,124 @@
+// Copyright 2021 Ahmet Alp Balkan
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package grpcoin;
+option go_package = "api/grpcoin";
+option csharp_namespace = "GrpCoin";
+
+import "google/protobuf/timestamp.proto";
+
+service TickerInfo {
+    // Watch returns real-time quotes of the ticker.
+    // The only supported ticker is "BTC-USD".
+    //
+    // The stream might return error (if it fails to get prices) or
+    // time out if you stream it for over 15 minutes.
+    // If the stream terminates, please reconnect.
+    //
+    // Unauthenticated.
+    rpc Watch(QuoteTicker) returns (stream Quote){}
+}
+
+// QuoteTicker represents a quote request for a coin (e.g. BTC-USD)
+message QuoteTicker {
+    string ticker = 1; // e.g. BTC-USD
+}
+
+// Quote represents a real-time coin price.
+message Quote{
+    google.protobuf.Timestamp t = 10;
+    Amount price = 20;
+}
+
+message Amount {
+    // The whole units of the amount.
+    // For example if `currencyCode` is `"USD"`, then 1 unit is one US dollar.
+    int64 units = 1;
+
+    // Number of nano (10^-9) units of the amount.
+    // The value must be between -999,999,999 and +999,999,999 inclusive.
+    // If `units` is positive, `nanos` must be positive or zero.
+    // If `units` is zero, `nanos` can be positive, zero, or negative.
+    // If `units` is negative, `nanos` must be negative or zero.
+    // For example $-1.75 is represented as `units`=-1 and `nanos`=-750,000,000.
+    int32 nanos = 2;
+}
+
+service Account {
+    // Tests if your token works.
+    //
+    // Send a header (gRPC metadata) named "Authorization"
+    // with value "Bearer XXX" where XXX is a GitHub Personal Access token
+    // from https://github.com/settings/tokens (no permissions needed).
+    rpc TestAuth(TestAuthRequest) returns (TestAuthResponse) {}
+}
+
+message TestAuthRequest {}
+message TestAuthResponse {
+    string user_id = 10;
+}
+
+service PaperTrade {
+    // Returns authenticated user's portfolio.
+    rpc Portfolio(PortfolioRequest) returns (PortfolioResponse) {}
+
+    // Executes a trade in authenticated user's portfolio.
+    // All trades are executed immediately with the real-time market
+    // price provided on TickerInfo.Watch endpoint.
+    rpc Trade(TradeRequest) returns (TradeResponse) {}
+}
+
+message PortfolioRequest {}
+
+message PortfolioResponse {
+    // User's cash holdings in USD.
+    Amount cash_usd = 1;
+
+    // User's cryptocurrency positions.
+    repeated PortfolioPosition positions = 2;
+}
+
+message PortfolioPosition {
+    message Ticker {
+        string ticker = 1; // e.g. BTC
+    }
+    Ticker ticker = 1;
+    Amount amount = 2;
+}
+
+
+enum TradeAction {
+    UNDEFINED = 0;
+    BUY = 1;  // Buy a cryptocurrency using cash holdings.
+    SELL = 2; // Sell a cryptocurrency for cash holdings.
+}
+
+message TradeRequest{
+    message Ticker {
+        string ticker = 1; // e.g. BTC
+    }
+    TradeAction action = 1;
+    Ticker ticker = 2;
+    Amount quantity = 3;
+}
+
+message TradeResponse{
+    google.protobuf.Timestamp t = 1;
+    TradeAction action = 2;
+    Amount quantity = 3;
+    Amount executed_price = 4;
+}
+
+message Empty {}
