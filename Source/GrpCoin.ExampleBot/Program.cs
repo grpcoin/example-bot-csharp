@@ -60,7 +60,7 @@ string GetToken()
 }
 string GetUrl()
 {
-    const string prod = "https://grpcoin-main-kafjc7sboa-wl.a.run.app:443";
+    const string prod = "https://api.grpco.in:443";
     const string local = "localhost:8080";
     return string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOCAL")) ? local : prod;
 }
